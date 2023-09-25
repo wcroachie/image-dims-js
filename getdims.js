@@ -162,7 +162,7 @@ function getDimsSync( arr ){
         if(
               arr[ pointer - 3] == 0x69 /* i */
           &&  arr[ pointer - 2] == 0x73 /* s */
-          &&  arr[ pointer - 1] == 0x70 /* pointer */
+          &&  arr[ pointer - 1] == 0x70 /* p */
           &&  arr[ pointer ] == 0x65    /* e */
         ){
           ispeboxes.push( arr.slice(pointer+1,pointer+13) );
