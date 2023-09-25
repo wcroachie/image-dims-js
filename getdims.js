@@ -1,4 +1,11 @@
-function getDimsSync( arr ){
+/**
+ * 
+ * @param {object} arr array or array-like object containing all of the bytes of the image file
+ * @returns {object} Array containing the width and height of the image as integers*
+ * NOTE - for .cur and .ico files, since there are multiple dimensions it returns an arraay of heights
+ * and widths in the same order as the entries in the file
+ */
+function getwhsync( arr ){
 
   arr = [...arr];
 
@@ -14,7 +21,7 @@ function getDimsSync( arr ){
    * check for binary bytes (if there are none, it's probably
    * svg or some other plaintext image type)
    */
-  
+
   for(
     pointer = 0;
     pointer < head_arr.length;
@@ -99,25 +106,25 @@ function getDimsSync( arr ){
           /* test1-lossless - 1924 x 1223 (1923 x 1222 before adding 1) */
           /*
           
-             21        22            23        24
+            21        22            23        24
           10000011  10000111      00110001  00010001
           '------'  '------'      '------'  '------'
                 \   /                   \   /
-                 \ /                     \ /
+                \ /                     \ /
                   X                       X
-                 / \                     / \
+                / \                     / \
                 /   \                   /   \
           .------..------.          .------..------.
           1000011110000011          0001000100110001
           |/      &                 XXXX     &
           / 11111111111111              111111111111
-         /        |                           | 
+        /        |                           | 
         /         V                           V
         |   00011110000011  (1923)      000100110001   2 shift left
         |   width (add 1)                   << 2
         |                             000100110001--
         \                                   &
-         `----------------------------00000000000010
+        `----------------------------00000000000010
                                             |
                                             V
                                       00010011000110  (1222)
@@ -196,7 +203,7 @@ function getDimsSync( arr ){
     }
 
 
-    /******************* gif */
+    /* gif */
     if(
           head_arr[0] == 0x47 /* G */
       &&  head_arr[1] == 0x49 /* I */
@@ -207,7 +214,7 @@ function getDimsSync( arr ){
       return [w,h];
     }
 
-    /******************* jpeg */
+    /* jpeg */
     if(
           head_arr[0] == 0xff
       &&  head_arr[1] == 0xd8
@@ -239,7 +246,7 @@ function getDimsSync( arr ){
       return [w,h];
     }
 
-    /******************* png and apng */
+    /* png and apng */
     if(
           head_arr[0] == 0x89
       &&  head_arr[1] == 0x50 /* P */
@@ -274,7 +281,7 @@ function getDimsSync( arr ){
       return [w,h];
     }
 
-    /******************* tiff */
+    /* tiff */
     if(
       (
             head_arr[0] == 0x49 /* I */
@@ -314,7 +321,8 @@ function getDimsSync( arr ){
     }
 
 
-    /******************* cur and ico */
+    /* cur and ico */
+    /* http://www.daubnet.com/en/file-format-ico */
     if(
           head_arr[0] == 0x00
       &&  head_arr[1] == 0x00
@@ -323,24 +331,19 @@ function getDimsSync( arr ){
       ) &&
       head_arr[3] == 0x00
     ){
-      var numicons = head_arr.slice(4,6);
-      numicons = new Uint16Array(numicons.buffer)[0];
-      console.log(numicons);
-      /**
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo
-       * @todo find way to get dims of ico and cur images
-       */
+      /* amount of images in the file */
+      var count = head_arr[5] << 8 | head_arr[4];
+      console.log(count);
+
+      /* after this there are icondirentry, each 16 bytes long, amount of which that correspond to the count */
+      var direntries = head_arr.slice(6,6+(16 * count));
+      for(pointer=0;pointer<count;pointer++){
+        direntries.push( direntries.splice(0,16) );
+      }
+      pointer = 0;
+      /* for each direntry the width and height are the first and second bytes (max dimension is 255) */
+      var dimensions = direntries.map(e=>e.slice(0,2));
+      return dimensions;
     }
     
     /* if none of the above, throw an error */
